@@ -1,0 +1,5 @@
+{
+  "port": 5000,
+  "mongoUri": "mongodb+srv://sver:huipizda1@cluster0.evs5d.mongodb.net/social-network",
+  "jwtSecret": "sverver jwt jwt key"
+}
