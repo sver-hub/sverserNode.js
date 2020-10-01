@@ -7,6 +7,8 @@ const User = require('../models/User')
 const router = Router()
 
 module.exports = router
+
+
 // /api/auth/register
 router.post('/register',
     [
@@ -20,13 +22,13 @@ router.post('/register',
             if (!validationErrors.isEmpty()) {
                 return res.status(400).json({
                     errors: validationErrors.array(),
-                    messages: 'Invalid registration data'
+                    message: 'Invalid registration data'
                 })
             }
 
             const {email, password} = req.body
 
-            const candidate = await User.findOne({email})
+            const candidate = await User.findOne({email}).select('email')
 
             if (candidate) {
                 return res.status(400).json({message: 'User with this email already exists'})
@@ -41,6 +43,7 @@ router.post('/register',
 
 
         } catch (e) {
+            console.log(e.message)
             res.status(500).json({message: 'Something went wrong, try again...'})
         }
     })
@@ -62,7 +65,7 @@ router.post('/login', [
 
             const {email, password} = req.body
 
-            const user = await User.findOne({email})
+            const user = await User.findOne({email}).select(['email','password'])
 
             if (!user) {
                 return res.status(400).json({message: 'Such user does not exist'})
@@ -74,15 +77,16 @@ router.post('/login', [
                 return res.status(400).json({message: 'Wrong password'})
             }
 
-            const token = jwt.send(
+            const token = jwt.sign(
                 {userId: user.id},
                 config.get('jwtSecret'),
-                {expireIn: '1h'}
+                {expiresIn: '1h'}
             )
 
             res.json({token, userId: user.id})
 
         } catch (e) {
+            console.log(e.message)
             res.status(500).json({message: 'Something went wrong, try again...'})
         }
     })
