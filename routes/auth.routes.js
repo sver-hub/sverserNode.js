@@ -2,28 +2,21 @@ const {Router} = require('express')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const config = require('config')
-const {check, validationResult} = require('express-validator')
 const User = require('../models/User')
+const {registerValidation, loginValidation} = require("../validation/auth.validation");
+
 const router = Router()
 
 module.exports = router
 
 
 // /api/auth/register
-router.post('/register',
-    [
-        check('email', 'Invalid email').isEmail(),
-        check('password', 'Password is too short, at least 6 symbols').isLength({min: 6})
-    ],
-    async (req, res) => {
+router.post('/register', async (req, res) => {
         try {
-            const validationErrors = validationResult(req)
 
-            if (!validationErrors.isEmpty()) {
-                return res.status(400).json({
-                    errors: validationErrors.array(),
-                    message: 'Invalid registration data'
-                })
+            const {error} = registerValidation(req.body)
+            if (error) {
+                return res.status(400).json({message: error.details[0].message})
             }
 
             const {email, password} = req.body
@@ -34,7 +27,8 @@ router.post('/register',
                 return res.status(400).json({message: 'User with this email already exists'})
             }
 
-            const hashedPassword = await bcrypt.hash(password, 12)
+            const salt = await bcrypt.genSalt(10)
+            const hashedPassword = await bcrypt.hash(password, salt)
             const user = new User({email, password: hashedPassword})
 
             await user.save();
@@ -49,26 +43,19 @@ router.post('/register',
     })
 
 // /api/auth/login
-router.post('/login', [
-        check('email', 'Invalid email').normalizeEmail().isEmail(),
-        check('password', 'Enter a password').exists()
-    ],
-    async (req, res) => {
+router.post('/login', async (req, res) => {
         try {
-            const validationErrors = validationResult(req)
-            if (!validationErrors.isEmpty()) {
-                return res.status(400).json({
-                    errors: validationErrors.array(),
-                    message: 'Invalid login data'
-                })
+            const {error} = loginValidation(req.body)
+            if (error) {
+                return res.status(400).json({message: error.details[0].message})
             }
 
             const {email, password} = req.body
 
-            const user = await User.findOne({email}).select(['email','password'])
+            const user = await User.findOne({email}).select(['email', 'password'])
 
             if (!user) {
-                return res.status(400).json({message: 'Such user does not exist'})
+                return res.status(400).json({message: 'User with this email is not registered'})
             }
 
             const isPasswordMatch = await bcrypt.compare(password, user.password)
@@ -78,12 +65,12 @@ router.post('/login', [
             }
 
             const token = jwt.sign(
-                {userId: user.id},
+                {id: user.id},
                 config.get('jwtSecret'),
                 {expiresIn: '1h'}
             )
 
-            res.json({token, userId: user.id})
+            res.json({token})
 
         } catch (e) {
             console.log(e.message)

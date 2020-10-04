@@ -4,7 +4,7 @@ const router = Router()
 
 module.exports = router
 
-router.get('get', [], async (req, res) => {
+router.get('/', [], async (req, res) => {
     const {page, pageSize} = req.query
     try {
         const users = await User.find().select('-password-email').offset(page*pageSize).limit(pageSize)

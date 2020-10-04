@@ -8,6 +8,7 @@ const schema = new Schema({
     dateOfBirth: {type: Date},
     location: String,
     status: String,
+    imgUrl: String,
     online: Boolean
 })
 
